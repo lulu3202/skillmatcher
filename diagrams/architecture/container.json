@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Skill Matcher — C4-style Container View",
+    "quality_profile": "showcase",
+    "output": "container.html"
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "Developer", "sublabel": "Person · goal and choices", "pos": [40, 280], "size": [170, 72] },
+    { "id": "frontend", "type": "frontend", "label": "Browser frontend", "sublabel": "Container · Next.js/React · frozen UI", "pos": [300, 280], "size": [190, 72] },
+    { "id": "application", "type": "backend", "label": "Application server", "sublabel": "Container · Next.js routes · 30m cache", "pos": [610, 280], "size": [205, 72] },
+    { "id": "github", "type": "external", "label": "GitHub", "sublabel": "External system · REST evidence", "pos": [930, 280], "size": [195, 72] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Skill Matcher system boundary", "wraps": ["frontend", "application"], "pad": 44 }
+  ],
+  "connections": [
+    { "id": "user-to-frontend", "from": "user", "to": "frontend", "label": "User Goal, Selected Skill, selected agent", "variant": "emphasis", "labelAt": [255, 366] },
+    { "id": "frontend-to-application", "from": "frontend", "to": "application", "label": "HTTPS/JSON: MatchRequest, SelectionContext, GuidanceRequest", "variant": "emphasis", "labelAt": [550, 230] },
+    { "id": "application-to-github", "from": "application", "to": "github", "label": "HTTPS/JSON REST: discovery, metadata, documentation", "variant": "default", "labelAt": [873, 230] },
+    { "id": "github-to-application", "from": "github", "to": "application", "label": "HTTPS/JSON: CandidateSkill, evidence, documentation", "variant": "default", "labelAt": [870, 390] },
+    { "id": "application-to-frontend", "from": "application", "to": "frontend", "label": "HTTPS/JSON: Recommendation, SetupGuidance, RecoveryState", "variant": "emphasis", "labelAt": [550, 390] },
+    { "id": "frontend-to-user", "from": "frontend", "to": "user", "label": "ranked results, detail, Agent Dock, recovery", "variant": "emphasis", "labelAt": [255, 410] }
+  ],
+  "cards": [
+    { "dot": "violet", "title": "Approved boundary", "items": ["Browser frontend and application server communicate through approved HTTPS/JSON contracts.", "Both logical containers are implemented in one Next.js project; no separate deployment is implied."] },
+    { "dot": "emerald", "title": "Trust and evidence", "items": ["User Goal is untrusted; GitHub facts are external and time-dependent at retrieval.", "Internal 30-minute process-memory cache is non-authoritative; no database or cache service exists."] }
+  ]
+}

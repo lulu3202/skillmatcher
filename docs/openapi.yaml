@@ -1,0 +1,137 @@
+openapi: 3.1.0
+info:
+  title: Skill Matcher API
+  version: 1.0.0
+  description: Canonical V1 HTTPS/JSON browser-to-application contract. GitHub integration and the non-authoritative process-memory evidence cache remain server-side.
+  license:
+    name: UNLICENSED
+    identifier: LicenseRef-UNLICENSED
+servers:
+  - url: /
+    description: Same-origin Browser frontend to Application server boundary.
+security: []
+paths:
+  /api/matches:
+    post:
+      operationId: matchGoal
+      summary: Return exactly three eligible public-GitHub skill recommendations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MatchRequest' }
+      responses:
+        '200':
+          description: Exactly three ranked recommendations.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MatchResult' }
+        '400': { $ref: '#/components/responses/Recovery' }
+        '422': { $ref: '#/components/responses/Recovery' }
+        '502': { $ref: '#/components/responses/Recovery' }
+  /api/guidance:
+    post:
+      operationId: getGuidance
+      summary: Return agent-specific setup guidance for a selected recommendation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/GuidanceRequest' }
+      responses:
+        '200':
+          description: Setup guidance.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SetupGuidance' }
+        '400': { $ref: '#/components/responses/Recovery' }
+        '422': { $ref: '#/components/responses/Recovery' }
+        '502': { $ref: '#/components/responses/Recovery' }
+components:
+  responses:
+    Recovery:
+      description: A recoverable product state; the exact goal is retained.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/RecoveryState' }
+  schemas:
+    MatchRequest:
+      type: object
+      additionalProperties: false
+      required: [userGoal]
+      properties:
+        userGoal: { type: string, minLength: 1, description: Exact submitted natural-language goal. }
+    MatchResult:
+      type: object
+      additionalProperties: false
+      required: [userGoal, recommendations]
+      properties:
+        userGoal: { type: string }
+        recommendations:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items: { $ref: '#/components/schemas/Recommendation' }
+    Recommendation:
+      type: object
+      additionalProperties: false
+      required: [selectedSkillId, rank, skillName, repositoryUrl, totalScore, matchReason, comparativeReason, githubEvidence, scoreBreakdown]
+      properties:
+        selectedSkillId: { type: string }
+        rank: { type: integer, minimum: 1, maximum: 3 }
+        skillName: { type: string }
+        repositoryUrl: { type: string, format: uri }
+        totalScore: { type: number, minimum: 0, maximum: 100 }
+        matchReason: { type: string }
+        comparativeReason: { type: string }
+        githubEvidence: { $ref: '#/components/schemas/GitHubEvidence' }
+        scoreBreakdown: { $ref: '#/components/schemas/ScoreBreakdown' }
+    GitHubEvidence:
+      type: object
+      additionalProperties: false
+      required: [repository, retrievedAt, missingFields]
+      properties:
+        repository: { type: string }
+        community: { type: string }
+        maintenance: { type: string }
+        stewardship: { type: string }
+        retrievedAt: { type: string, format: date-time }
+        missingFields: { type: array, items: { type: string } }
+    ScoreBreakdown:
+      type: object
+      additionalProperties: false
+      required: [goalFit, taskCoverage, githubCredibility, maintenance, totalScore]
+      properties:
+        goalFit: { type: number, minimum: 0, maximum: 40 }
+        taskCoverage: { type: number, minimum: 0, maximum: 30 }
+        githubCredibility: { type: number, minimum: 0, maximum: 20 }
+        maintenance: { type: number, minimum: 0, maximum: 10 }
+        totalScore: { type: number, minimum: 0, maximum: 100 }
+    GuidanceRequest:
+      type: object
+      additionalProperties: false
+      required: [selectedSkillId, selectedAgent, retainedUserGoal]
+      properties:
+        selectedSkillId: { type: string }
+        selectedAgent: { type: string, enum: [Claude Code, Codex] }
+        retainedUserGoal: { type: string }
+    SetupGuidance:
+      type: object
+      additionalProperties: false
+      required: [agent, addInstruction, invokeInstruction, applyInstruction, setupCommand, starterPrompt]
+      properties:
+        agent: { type: string, enum: [Claude Code, Codex] }
+        addInstruction: { type: string }
+        invokeInstruction: { type: string }
+        applyInstruction: { type: string }
+        setupCommand: { type: string }
+        starterPrompt: { type: string }
+    RecoveryState:
+      type: object
+      additionalProperties: false
+      required: [retainedUserGoal, condition, explanation, allowedActions]
+      properties:
+        retainedUserGoal: { type: string }
+        condition: { type: string, enum: [vague_goal, no_match, github_unavailable, insufficient_setup] }
+        explanation: { type: string }
+        allowedActions: { type: array, items: { type: string } }

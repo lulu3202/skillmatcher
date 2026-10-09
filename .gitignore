@@ -1,0 +1,29 @@
+# Dependencies and builds
+node_modules/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+
+# Environment and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local tools, caches, and browser artifacts
+.tools/
+.codex/
+.impeccable/
+.cache/
+playwright-report/
+test-results/
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.swp

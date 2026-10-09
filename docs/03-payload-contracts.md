@@ -1,0 +1,25 @@
+# Payload contracts
+
+## Status
+
+These conceptual contracts are the canonical data companion to [03-interaction-contracts.md](03-interaction-contracts.md). They are not API schemas. Approved V1 semantics are implemented through the canonical [OpenAPI contract](openapi.yaml).
+
+| Contract | Purpose | Producer → consumer | Minimum high-level fields | Authoritative source | Approved V1 semantics |
+|---|---|---|---|---|---|
+| MatchRequest | Submit the exact user goal for matching. | Frontend → Application | `userGoal` — exact natural-language text | User at submission time | Input must be non-empty; specificity is assessed deterministically from retained goal terms. |
+| CandidateSkill | Represent one discovered public candidate before eligibility. | GitHub / external evidence → Application | `candidateId`; `skillName`; `repository`; `repositoryUrl`; public skill/context evidence | Retrieved public GitHub source content | Identity is `owner/repository:path-to-SKILL.md`; public GitHub Code Search uses `<term> path:/(^|\/)SKILL\.md$/`, then candidates are normalized and deterministically deduplicated. |
+| GitHubEvidence | Carry external credibility and setup evidence without filling gaps. | GitHub / external evidence → Application → Frontend | repository reference; available popularity/community evidence; available maintenance evidence; available stewardship evidence; available freshness/retrieval context; missing-field status | GitHub/public repository evidence at retrieval time | Repository identity/URL and retrievable `SKILL.md` are required; popularity, maintenance, stewardship, README, and other optional evidence remain missing when unavailable. Cache TTL is 30 minutes. |
+| EligibilityResult | Record whether a CandidateSkill may be ranked. | Application eligibility → scoring/ranking and recovery | `candidateId`; `eligible`; `reason` | Deterministic application-rule outcome | Eligible only when the repository is public, accessible, non-archived, has canonical identity/URL metadata, and has a retrievable `SKILL.md`. |
+| ScoreBreakdown | Make the rank explainable. | Application scoring → results/detail | `candidateId`; `goalFit`; `taskCoverage`; `githubCredibility`; `maintenance`; `totalScore` | Deterministic application-rule outcome | 40/30/20/10 factors total 0–100; tie-break is Goal Fit, GitHub Credibility, then canonical candidate identity. Goal Fit and Task Coverage use lexical whole-token matching. |
+| Recommendation | Present one ranked candidate in the Top 3. | Application ranking → Frontend results/detail | `rank`; `skillName`; `repositoryUrl`; `totalScore`; `matchReason`; `comparativeReason`; `githubEvidence`; `scoreBreakdown` | Derived from current User Goal, eligible CandidateSkills, and available GitHubEvidence | Exactly three are returned only when at least three candidates are eligible. Explanation is derived from deterministic scores and available evidence. |
+| SelectionContext | Keep the selected recommendation and exact goal together for detail. | Frontend → Application | `selectedSkillId`; `retainedUserGoal` | User selection within current results; User Goal at submission | `selectedSkillId` is the canonical candidate identity. Detail uses retained result context rather than a refresh. |
+| GuidanceRequest | Ask for the selected Agent Dock guidance. | Frontend → Application | `selectedSkillId`; `selectedAgent` — Claude Code or Codex; `retainedUserGoal` | User selection and retained User Goal | Authority is retrieved `SKILL.md`, README, and repository documentation. The selected agent changes presentation only unless source material expressly supports an agent-specific instruction. |
+| SetupGuidance | Hand the chosen skill to Claude Code or Codex. | Application → Frontend | `agent`; `addInstruction`; `invokeInstruction`; `applyInstruction`; `setupCommand`; `starterPrompt` | Retrieved public setup information plus a prompt derived from the retained goal | Commands are advisory and copyable only. A directory action is expressed in `addInstruction`; `setupCommand` follows the OpenAPI contract. The application may derive only the canonical repository-clone display command; other displayed commands require source-backed safe-command approval. |
+| RecoveryState | Preserve the goal and provide an honest next action. | Application → Frontend | `retainedUserGoal`; `condition`; `explanation`; `allowedActions` | Application outcome and original User Goal | Conditions are `vague_goal`, `no_match` (including fewer than three), `github_unavailable`, and `insufficient_setup`; OpenAPI defines the transport mapping. |
+
+## Contract rules
+
+- The user goal is preserved exactly for the active flow.
+- Exactly three Recommendations are returned only when at least three candidates are eligible.
+- Missing GitHubEvidence remains missing; it is never fabricated, silently replaced, or presented as verified.
+- Candidate discovery, GitHub facts, eligibility, score/rank, and setup guidance remain traceable to their stated authorities.
